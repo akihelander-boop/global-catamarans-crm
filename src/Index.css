@@ -1,5 +1,7 @@
 /* Global Catamarans CRM — Tailwind CSS v4 base styles */
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* ── Custom scrollbar (subtle) ── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
