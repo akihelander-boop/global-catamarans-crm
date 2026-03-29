@@ -134,6 +134,7 @@ export default function ClientForm() {
   const [tab,       setTab]       = useState<TabId>('contact');
   const [loading,   setLoading]   = useState(!isNew);
   const [saving,    setSaving]    = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [errors,    setErrors]    = useState<Partial<Record<keyof ClientFormData, string>>>({});
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -180,6 +181,7 @@ export default function ClientForm() {
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
+    setSaveError(null);
     if (!validate()) {
       // Jump to first tab with errors
       if (errors.name || errors.email) setTab('contact');
@@ -189,16 +191,43 @@ export default function ClientForm() {
   };
 
   const handleSave = async () => {
+    const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> => {
+      return new Promise<T>((resolve, reject) => {
+        const timer = setTimeout(() => {
+          reject(new Error('Timed out while saving'));
+        }, ms);
+        promise
+          .then((value) => {
+            clearTimeout(timer);
+            resolve(value);
+          })
+          .catch((error) => {
+            clearTimeout(timer);
+            reject(error);
+          });
+      });
+    };
+
     setSaving(true);
+    setSaveError(null);
     setShowConfirm(false);
-    let saved;
-    if (isNew) {
-      saved = await createClient_({ ...form, name: form.name.trim() });
-    } else {
-      saved = await updateClient(id!, form);
+    try {
+      let saved;
+      if (isNew) {
+        saved = await withTimeout(createClient_({ ...form, name: form.name.trim() }), 15000);
+      } else {
+        saved = await withTimeout(updateClient(id!, form), 15000);
+      }
+      if (saved) {
+        navigate('/');
+      } else {
+        setSaveError('Save failed. Please check your connection and try again.');
+      }
+    } catch {
+      setSaveError('Save timed out. Please try again.');
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
-    if (saved) navigate('/');
   };
 
   if (loading) {
@@ -247,6 +276,12 @@ export default function ClientForm() {
             </button>
           ))}
         </div>
+
+        {saveError && (
+          <div className="mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+            {saveError}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}>
 
