@@ -5,8 +5,8 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { User, Session } from '@supabase/supabase-js';
-import { supabase, getMyProfile } from '../lib/supabaseClient';
-import type { Profile } from '../types';
+import { supabase, getMyProfile } from '@/lib/supabaseClient';
+import type { Profile } from '@/types';
 
 interface AuthContextType {
   session:  Session  | null;
@@ -77,6 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- useAuth is the public API for AuthProvider
 export function useAuth(): AuthContextType {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error('useAuth must be used inside <AuthProvider>');

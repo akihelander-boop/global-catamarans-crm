@@ -2,12 +2,12 @@
 // Dashboard — client list with search, filter, stats
 // ═══════════════════════════════════════════════════════════════
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { listClients, deleteClient } from '../lib/supabaseClient';
-import { useAuth } from '../hooks/useAuth';
-import type { Client } from '../types';
-import Layout from '../components/Layout';
+import { listClients, deleteClient } from '@/lib/supabaseClient';
+import { useAuth } from '@/hooks/useAuth';
+import type { Client } from '@/types';
+import Layout from '@/components/Layout';
 
 // ── Helpers ─────────────────────────────────────────────────────
 const SCORE_LABEL: Record<number, string> = {
@@ -48,22 +48,24 @@ export default function Dashboard() {
   const [deleteTarget, setDeleteTarget] = useState<Client | null>(null);
   const [deleting,     setDeleting]     = useState(false);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     const data = await listClients({
-      search:         search    || undefined,
+      search: search || undefined,
       potentialScore: scoreFilter ? Number(scoreFilter) : undefined,
-      customerType:   typeFilter  || undefined,
+      customerType: typeFilter || undefined,
     });
     setClients(data);
     setLoading(false);
-  };
+  }, [search, scoreFilter, typeFilter]);
 
   // Reload when filters change (debounce search)
   useEffect(() => {
-    const t = setTimeout(load, search ? 300 : 0);
+    const t = setTimeout(() => {
+      void load();
+    }, search ? 300 : 0);
     return () => clearTimeout(t);
-  }, [search, scoreFilter, typeFilter]);
+  }, [search, scoreFilter, typeFilter, load]);
 
   const stats = useMemo(() => ({
     total:         clients.length,
@@ -88,8 +90,8 @@ export default function Dashboard() {
         {/* Header */}
         <div className="flex items-start justify-between mb-6">
           <div>
-            <h1 className="text-xl font-bold text-[#1a3a6b] flex items-center gap-2">
-              <svg className="w-5 h-5 text-[#2c5aa0]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
+              <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
               </svg>
               Client Dashboard
@@ -100,8 +102,8 @@ export default function Dashboard() {
           </div>
           <button
             onClick={() => navigate('/clients/new')}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#2c5aa0] hover:bg-[#1a4080]
-                       text-white text-sm font-semibold transition-colors shadow-sm"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary hover:bg-primary/90
+                       text-primary-foreground text-sm font-semibold transition-colors shadow-sm"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path d="M12 5v14M5 12h14"/>
@@ -113,12 +115,12 @@ export default function Dashboard() {
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           {[
-            { label: 'Total clients',    value: stats.total,         color: 'text-[#2c5aa0]',  bg: 'bg-blue-50' },
+            { label: 'Total clients',    value: stats.total,         color: 'text-primary',  bg: 'bg-secondary' },
             { label: 'High potential',   value: stats.highPotential, color: 'text-yellow-600', bg: 'bg-yellow-50' },
             { label: 'Time-sensitive',   value: stats.timeSensitive, color: 'text-orange-600', bg: 'bg-orange-50' },
             { label: 'Actions set',      value: stats.withAction,    color: 'text-green-600',  bg: 'bg-green-50' },
           ].map(s => (
-            <div key={s.label} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
+            <div key={s.label} className="bg-card rounded-xl border border-border shadow-sm p-4 flex items-center gap-3">
               <span className={`text-3xl font-bold ${s.color}`}>{s.value}</span>
               <span className="text-sm text-gray-500 leading-tight">{s.label}</span>
             </div>
@@ -136,16 +138,16 @@ export default function Dashboard() {
               placeholder="Search by name, email or phone…"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-gray-200 text-sm
-                         focus:outline-none focus:ring-2 focus:ring-[#2c5aa0]/20 focus:border-[#2c5aa0] transition"
+              className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-border text-sm
+                         focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition"
             />
           </div>
 
           <select
             value={scoreFilter}
             onChange={e => setScoreFilter(e.target.value)}
-            className="px-3 py-2.5 rounded-lg border border-gray-200 text-sm bg-white
-                       focus:outline-none focus:ring-2 focus:ring-[#2c5aa0]/20 focus:border-[#2c5aa0]"
+            className="px-3 py-2.5 rounded-lg border border-border text-sm bg-card
+                       focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring"
           >
             <option value="">All scores</option>
             {[1,2,3,4,5].map(n => (
@@ -156,8 +158,8 @@ export default function Dashboard() {
           <select
             value={typeFilter}
             onChange={e => setTypeFilter(e.target.value)}
-            className="px-3 py-2.5 rounded-lg border border-gray-200 text-sm bg-white
-                       focus:outline-none focus:ring-2 focus:ring-[#2c5aa0]/20 focus:border-[#2c5aa0]"
+            className="px-3 py-2.5 rounded-lg border border-border text-sm bg-card
+                       focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring"
           >
             <option value="">All types</option>
             <option value="private">Private</option>
@@ -166,7 +168,7 @@ export default function Dashboard() {
         </div>
 
         {/* Table */}
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
           {loading ? (
             <div className="p-8 text-center text-gray-400 text-sm">Loading clients…</div>
           ) : clients.length === 0 ? (
@@ -186,7 +188,7 @@ export default function Dashboard() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b bg-gray-50">
+                  <tr className="border-b bg-muted/60">
                     {['Name', 'Contact', 'Type', 'Score', 'Next step', 'Modified', ''].map(h => (
                       <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
                         {h}
@@ -198,12 +200,12 @@ export default function Dashboard() {
                   {clients.map(client => (
                     <tr
                       key={client.id}
-                      className="border-b last:border-0 hover:bg-blue-50/40 cursor-pointer transition-colors"
+                      className="border-b last:border-0 hover:bg-secondary/80 cursor-pointer transition-colors"
                       onClick={() => navigate(`/clients/${client.id}`)}
                     >
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1.5">
-                          <span className="font-semibold text-[#1a3a6b]">{client.name}</span>
+                          <span className="font-semibold text-foreground">{client.name}</span>
                           {client.flag_time_sensitive && (
                             <span title="Time-sensitive" className="text-orange-400">⚑</span>
                           )}
@@ -250,7 +252,7 @@ export default function Dashboard() {
                         <div className="flex gap-1.5 justify-end">
                           <button
                             onClick={() => navigate(`/clients/${client.id}`)}
-                            className="p-1.5 rounded hover:bg-blue-100 text-[#2c5aa0] transition-colors"
+                            className="p-1.5 rounded hover:bg-secondary text-primary transition-colors"
                             title="Edit"
                           >
                             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -290,8 +292,8 @@ export default function Dashboard() {
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40" onClick={() => setDeleteTarget(null)} />
-          <div className="relative bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm">
-            <h2 className="font-bold text-[#1a3a6b] mb-2">Delete client?</h2>
+          <div className="relative bg-card rounded-2xl shadow-xl p-6 w-full max-w-sm border border-border">
+            <h2 className="font-bold text-foreground mb-2">Delete client?</h2>
             <p className="text-sm text-gray-500 mb-6">
               This will permanently delete <strong>{deleteTarget.name}</strong> and all their data. This cannot be undone.
             </p>

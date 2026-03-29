@@ -1,7 +1,6 @@
-// postcss.config.js
+// postcss.config.js — Tailwind käsitellään @tailwindcss/vite -pluginilla (ei tuplakäsittelyä)
 export default {
   plugins: {
-    "@tailwindcss/postcss": {},
     autoprefixer: {},
   },
 };

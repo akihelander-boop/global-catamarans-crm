@@ -7,9 +7,23 @@ import type { FormEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   getClient, createClient_, updateClient,
-} from '../lib/supabaseClient';
-import type { ClientFormData, IntendedUse } from '../types';
-import Layout from '../components/Layout';
+} from '@/lib/supabaseClient';
+import type {
+  CashFlowView,
+  CashSource,
+  CustomerType,
+  ClientFormData,
+  ExperienceLevel,
+  FinancingAttitude,
+  IntendedUse,
+  NextStepType,
+  OwnerStatus,
+  PlanType,
+  PriceRange,
+  Timescale,
+  WeeksUsage,
+} from '@/types';
+import Layout from '@/components/Layout';
 
 // ── Default empty form state ─────────────────────────────────────
 const EMPTY: ClientFormData = {
@@ -47,17 +61,17 @@ function Field({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-sm font-semibold text-gray-700">
+      <label className="text-sm font-semibold text-foreground">
         {label}{required && <span className="text-red-500 ml-1">*</span>}
       </label>
-      {hint && <p className="text-xs text-gray-400 -mt-0.5">{hint}</p>}
+      {hint && <p className="text-xs text-muted-foreground -mt-0.5">{hint}</p>}
       {children}
     </div>
   );
 }
 
-const inputCls = `w-full px-3.5 py-2.5 rounded-lg border border-gray-200 text-sm bg-white
-  focus:outline-none focus:ring-2 focus:ring-[#2c5aa0]/20 focus:border-[#2c5aa0] transition`;
+const inputCls = `w-full px-3.5 py-2.5 rounded-lg border border-border text-sm bg-card
+  focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition`;
 
 const selectCls = inputCls + ' appearance-none';
 
@@ -80,7 +94,7 @@ function Sel({
         <option value="">{placeholder ?? '— select —'}</option>
         {children}
       </select>
-      <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+      <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"
         fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path d="M6 9l6 6 6-6"/>
       </svg>
@@ -101,7 +115,7 @@ function Txt(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
 function SubSection({ title }: { title: string }) {
   return (
     <div className="pt-2 pb-0.5">
-      <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 border-b border-gray-100 pb-1">
+      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground border-b border-border pb-1">
         {title}
       </p>
     </div>
@@ -129,12 +143,16 @@ export default function ClientForm() {
     (async () => {
       const data = await getClient(id!);
       if (data) {
-        const { id: _id, created_at, updated_at, created_by, ...rest } = data;
+        const { id, created_at, updated_at, created_by, ...rest } = data;
+        void id;
+        void created_at;
+        void updated_at;
+        void created_by;
         setForm({ ...EMPTY, ...rest });
       }
       setLoading(false);
     })();
-  }, [id]);
+  }, [id, isNew]);
 
   // Generic setter helpers
   const set = <K extends keyof ClientFormData>(key: K, value: ClientFormData[K]) => {
@@ -186,7 +204,7 @@ export default function ClientForm() {
   if (loading) {
     return (
       <Layout>
-        <div className="p-8 text-center text-gray-400 text-sm">Loading client…</div>
+        <div className="p-8 text-center text-muted-foreground text-sm">Loading client…</div>
       </Layout>
     );
   }
@@ -194,8 +212,8 @@ export default function ClientForm() {
   const tabCls = (t: TabId) =>
     `flex-1 py-2.5 px-3 text-sm font-semibold rounded-lg transition-all text-center
     ${tab === t
-      ? 'bg-[#2c5aa0] text-white shadow-sm'
-      : 'text-gray-500 hover:text-[#2c5aa0] hover:bg-blue-50'}`;
+      ? 'bg-primary text-primary-foreground shadow-sm'
+      : 'text-muted-foreground hover:text-primary hover:bg-secondary'}`;
 
   return (
     <Layout>
@@ -205,24 +223,24 @@ export default function ClientForm() {
         <div className="flex items-center gap-3 mb-6">
           <button
             onClick={() => navigate('/')}
-            className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
+            className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path d="M19 12H5M12 19l-7-7 7-7"/>
             </svg>
           </button>
           <div>
-            <h1 className="text-xl font-bold text-[#1a3a6b]">
+            <h1 className="text-xl font-bold text-foreground">
               {isNew ? 'New client' : form.name || 'Edit client'}
             </h1>
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-muted-foreground">
               {isNew ? 'Create a new intake record' : 'Update client record'}
             </p>
           </div>
         </div>
 
         {/* Tab bar */}
-        <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-6">
+        <div className="flex gap-1 bg-muted rounded-xl p-1 mb-6">
           {TABS.map(t => (
             <button key={t.id} type="button" onClick={() => setTab(t.id)} className={tabCls(t.id)}>
               {t.label}
@@ -236,7 +254,7 @@ export default function ClientForm() {
               TAB 1 · CLIENT & CONTACT
           ══════════════════════════════════════════════ */}
           {tab === 'contact' && (
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-5">
+            <div className="bg-card rounded-xl border border-border shadow-sm p-6 space-y-5">
               {/* Name */}
               <Field label="Name" required>
                 <Inp
@@ -285,7 +303,7 @@ export default function ClientForm() {
                 <Field label="Customer type">
                   <Sel
                     value={form.customer_type ?? ''}
-                    onChange={v => set('customer_type', (v || null) as any)}
+                    onChange={v => set('customer_type', (v || null) as CustomerType | null)}
                     placeholder="Select type"
                   >
                     <option value="private">Private</option>
@@ -301,14 +319,14 @@ export default function ClientForm() {
                     value={str('company_name')}
                     onChange={e => set('company_name', e.target.value || null)}
                     placeholder="Company or organisation name"
-                    className={form.customer_type === 'business' ? 'border-[#2c5aa0] ring-1 ring-[#2c5aa0]/20' : ''}
+                    className={form.customer_type === 'business' ? 'border-primary ring-1 ring-ring/20' : ''}
                   />
                 </Field>
 
                 <Field label="Previous catamaran owner?">
                   <Sel
                     value={form.previous_owner ?? ''}
-                    onChange={v => set('previous_owner', (v || null) as any)}
+                    onChange={v => set('previous_owner', (v || null) as OwnerStatus | null)}
                     placeholder="Has the client owned one before?"
                   >
                     <option value="yes">Yes</option>
@@ -320,7 +338,7 @@ export default function ClientForm() {
                 <Field label="Current catamaran owner?">
                   <Sel
                     value={form.current_owner ?? ''}
-                    onChange={v => set('current_owner', (v || null) as any)}
+                    onChange={v => set('current_owner', (v || null) as OwnerStatus | null)}
                     placeholder="Does the client currently own one?"
                   >
                     <option value="yes">Yes</option>
@@ -332,7 +350,7 @@ export default function ClientForm() {
 
               <div className="flex justify-end pt-2">
                 <button type="button" onClick={() => setTab('goals')}
-                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-gray-200 text-sm font-medium hover:bg-gray-50">
+                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-border text-sm font-medium hover:bg-muted">
                   Next: Goals & Usage
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path d="M9 18l6-6-6-6"/>
@@ -346,7 +364,7 @@ export default function ClientForm() {
               TAB 2 · GOALS & USAGE
           ══════════════════════════════════════════════ */}
           {tab === 'goals' && (
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-5">
+            <div className="bg-card rounded-xl border border-border shadow-sm p-6 space-y-5">
 
               <Field label="Overview of catamaran goals">
                 <Txt
@@ -402,7 +420,7 @@ export default function ClientForm() {
                         type="checkbox"
                         checked={(form.intended_use ?? []).includes(val)}
                         onChange={() => toggleUse(val)}
-                        className="w-4 h-4 accent-[#2c5aa0] rounded"
+                        className="w-4 h-4 accent-primary rounded"
                       />
                       {lbl}
                     </label>
@@ -414,7 +432,7 @@ export default function ClientForm() {
                 <Field label="Target price range">
                   <Sel
                     value={form.target_price_range ?? ''}
-                    onChange={v => set('target_price_range', (v || null) as any)}
+                    onChange={v => set('target_price_range', (v || null) as PriceRange | null)}
                     placeholder="Approximate budget"
                   >
                     <option value="under_300k">Under 300k</option>
@@ -429,7 +447,7 @@ export default function ClientForm() {
                 <Field label="Preferred timescale">
                   <Sel
                     value={form.preferred_timescale ?? ''}
-                    onChange={v => set('preferred_timescale', (v || null) as any)}
+                    onChange={v => set('preferred_timescale', (v || null) as Timescale | null)}
                     placeholder="When does the client want this?"
                   >
                     <option value="0_3m">0 – 3 months</option>
@@ -460,7 +478,7 @@ export default function ClientForm() {
                 <Field label="Experience with catamarans">
                   <Sel
                     value={form.experience_level ?? ''}
-                    onChange={v => set('experience_level', (v || null) as any)}
+                    onChange={v => set('experience_level', (v || null) as ExperienceLevel | null)}
                     placeholder="Client's experience level"
                   >
                     <option value="none">None</option>
@@ -474,7 +492,7 @@ export default function ClientForm() {
                 <Field label="Estimated usage per year">
                   <Sel
                     value={form.weeks_per_year_usage ?? ''}
-                    onChange={v => set('weeks_per_year_usage', (v || null) as any)}
+                    onChange={v => set('weeks_per_year_usage', (v || null) as WeeksUsage | null)}
                     placeholder="Estimated weeks per year"
                   >
                     <option value="0_4w">0 – 4 weeks</option>
@@ -505,14 +523,14 @@ export default function ClientForm() {
 
               <div className="flex justify-between pt-2">
                 <button type="button" onClick={() => setTab('contact')}
-                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-gray-200 text-sm font-medium hover:bg-gray-50">
+                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-border text-sm font-medium hover:bg-muted">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path d="M15 18l-6-6 6-6"/>
                   </svg>
                   Back
                 </button>
                 <button type="button" onClick={() => setTab('finance')}
-                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-gray-200 text-sm font-medium hover:bg-gray-50">
+                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-border text-sm font-medium hover:bg-muted">
                   Next: Financial
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path d="M9 18l6-6-6-6"/>
@@ -526,7 +544,7 @@ export default function ClientForm() {
               TAB 3 · FINANCIAL PROFILE
           ══════════════════════════════════════════════ */}
           {tab === 'finance' && (
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-5">
+            <div className="bg-card rounded-xl border border-border shadow-sm p-6 space-y-5">
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <Field label="Potential score (internal)" hint="1 = low · 5 = very high">
@@ -546,7 +564,7 @@ export default function ClientForm() {
                 <Field label="Cash flow view of the boat">
                   <Sel
                     value={form.cash_flow_view ?? ''}
-                    onChange={v => set('cash_flow_view', (v || null) as any)}
+                    onChange={v => set('cash_flow_view', (v || null) as CashFlowView | null)}
                     placeholder="How does the client view cash flow?"
                   >
                     <option value="cash_positive">Expect cash positive</option>
@@ -559,7 +577,7 @@ export default function ClientForm() {
                 <Field label="Source of cash portion">
                   <Sel
                     value={form.cash_source ?? ''}
-                    onChange={v => set('cash_source', (v || null) as any)}
+                    onChange={v => set('cash_source', (v || null) as CashSource | null)}
                     placeholder="Main source of cash portion"
                   >
                     <option value="savings">Savings</option>
@@ -573,7 +591,7 @@ export default function ClientForm() {
                 <Field label="Financing and leveraging assets">
                   <Sel
                     value={form.financing_attitude ?? ''}
-                    onChange={v => set('financing_attitude', (v || null) as any)}
+                    onChange={v => set('financing_attitude', (v || null) as FinancingAttitude | null)}
                     placeholder="Attitude towards financing"
                   >
                     <option value="not_considering">Not considering financing</option>
@@ -620,14 +638,14 @@ export default function ClientForm() {
 
               <div className="flex justify-between pt-2">
                 <button type="button" onClick={() => setTab('goals')}
-                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-gray-200 text-sm font-medium hover:bg-gray-50">
+                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-border text-sm font-medium hover:bg-muted">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path d="M15 18l-6-6 6-6"/>
                   </svg>
                   Back
                 </button>
                 <button type="button" onClick={() => setTab('internal')}
-                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-gray-200 text-sm font-medium hover:bg-gray-50">
+                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-border text-sm font-medium hover:bg-muted">
                   Next: Internal Notes
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path d="M9 18l6-6-6-6"/>
@@ -641,7 +659,7 @@ export default function ClientForm() {
               TAB 4 · INTERNAL NOTES & ACTIONS
           ══════════════════════════════════════════════ */}
           {tab === 'internal' && (
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-5">
+            <div className="bg-card rounded-xl border border-border shadow-sm p-6 space-y-5">
 
               {/* Internal only banner */}
               <div className="px-4 py-2.5 rounded-lg bg-green-50 border border-green-200 text-green-700 text-xs font-medium">
@@ -664,7 +682,7 @@ export default function ClientForm() {
                 <Field label="Next step type">
                   <Sel
                     value={form.next_step_type ?? ''}
-                    onChange={v => set('next_step_type', (v || null) as any)}
+                    onChange={v => set('next_step_type', (v || null) as NextStepType | null)}
                     placeholder="Select next step"
                   >
                     <option value="followup_call">Follow-up call</option>
@@ -700,7 +718,7 @@ export default function ClientForm() {
               <Field label="Plan type">
                 <Sel
                   value={form.plan_type ?? ''}
-                  onChange={v => set('plan_type', (v || null) as any)}
+                  onChange={v => set('plan_type', (v || null) as PlanType | null)}
                   placeholder="Select plan type"
                 >
                   <option value="nurture">Nurture</option>
@@ -734,8 +752,8 @@ export default function ClientForm() {
                       <input
                         type="checkbox"
                         checked={bool(key)}
-                        onChange={e => set(key, e.target.checked as any)}
-                        className="w-4 h-4 accent-[#2c5aa0] rounded"
+                        onChange={e => set(key, e.target.checked as ClientFormData[typeof key])}
+                        className="w-4 h-4 accent-primary rounded"
                       />
                       {lbl}
                     </label>
@@ -746,7 +764,7 @@ export default function ClientForm() {
               {/* Actions */}
               <div className="flex justify-between pt-2">
                 <button type="button" onClick={() => setTab('finance')}
-                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-gray-200 text-sm font-medium hover:bg-gray-50">
+                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-border text-sm font-medium hover:bg-muted">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path d="M15 18l-6-6 6-6"/>
                   </svg>
@@ -756,8 +774,8 @@ export default function ClientForm() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-[#2c5aa0] hover:bg-[#1a4080]
-                             text-white text-sm font-semibold disabled:opacity-60 transition-colors shadow-sm"
+                  className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-primary hover:bg-primary/90
+                             text-primary-foreground text-sm font-semibold disabled:opacity-60 transition-colors shadow-sm"
                 >
                   {saving ? (
                     <>
@@ -787,16 +805,16 @@ export default function ClientForm() {
       {showConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40" onClick={() => setShowConfirm(false)} />
-          <div className="relative bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm">
-            <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mb-4">
-              <svg className="w-6 h-6 text-[#2c5aa0]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <div className="relative bg-card rounded-2xl shadow-xl p-6 w-full max-w-sm border border-border">
+            <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center mb-4">
+              <svg className="w-6 h-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path d="M5 13l4 4L19 7"/>
               </svg>
             </div>
-            <h2 className="font-bold text-[#1a3a6b] mb-2">
+            <h2 className="font-bold text-foreground mb-2">
               {isNew ? 'Create client?' : 'Save changes?'}
             </h2>
-            <p className="text-sm text-gray-500 mb-6">
+            <p className="text-sm text-muted-foreground mb-6">
               {isNew
                 ? `This will create a new client record for "${form.name}".`
                 : `This will update the record for "${form.name}". Changes are saved immediately.`}
@@ -804,13 +822,13 @@ export default function ClientForm() {
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setShowConfirm(false)}
-                className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium hover:bg-gray-50"
+                className="px-4 py-2 rounded-lg border border-border text-sm font-medium hover:bg-muted"
               >
                 Review again
               </button>
               <button
                 onClick={handleSave}
-                className="px-4 py-2 rounded-lg bg-[#2c5aa0] text-white text-sm font-semibold hover:bg-[#1a4080]"
+                className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90"
               >
                 {isNew ? 'Create client' : 'Save changes'}
               </button>

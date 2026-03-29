@@ -1,26 +1,49 @@
-/* Global Catamarans CRM — Tailwind CSS v4 base styles */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Global Catamarans CRM — Tailwind CSS v4 (v3 @tailwind -directiivit eivät generoi breakpointteja) */
+@import "tailwindcss";
+
+/*
+ * Design tokens from globalcatamarans.com (Next.js bundle CSS, light theme.
+ * Original vars use hsl components without wrapper; here resolved to plain hsl().
+ */
+@theme {
+  --font-sans: "Zalando Sans Expanded", ui-sans-serif, system-ui, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+
+  --color-background: hsl(204 47% 88%);
+  --color-foreground: hsl(222.2 84% 4.9%);
+  --color-primary: hsl(206 66% 34%);
+  --color-primary-foreground: hsl(0 0% 98%);
+  --color-accent: hsl(175 65% 30%);
+  --color-accent-foreground: hsl(0 0% 98%);
+  --color-muted: hsl(204 20% 90%);
+  --color-muted-foreground: hsl(215.4 16.3% 46.9%);
+  --color-border: hsl(214.3 31.8% 91.4%);
+  --color-card: hsl(0 0% 100%);
+  --color-card-foreground: hsl(222.2 84% 4.9%);
+  --color-secondary: hsl(204 30% 92%);
+  --color-expert: hsl(175 65% 30%);
+  --color-expert-border: hsl(174 28% 63%);
+  --color-ring: hsl(206 66% 34%);
+}
 
 /* ── Custom scrollbar (subtle) ── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #c7d2e2; border-radius: 99px; }
-::-webkit-scrollbar-thumb:hover { background: #2c5aa0; }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-primary); }
 
 /* ── Base ── */
 *, *::before, *::after { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
-  background-color: #f0f4fa;
-  color: #1a3a6b;
+  background-color: var(--color-background);
+  color: var(--color-foreground);
 }
 
 /* ── Focus ring reset (use Tailwind classes per-element) ── */
 button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
-  outline: 2px solid #2c5aa0;
+  outline: 2px solid var(--color-ring);
   outline-offset: 2px;
 }

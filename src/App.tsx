@@ -3,11 +3,11 @@
 // ═══════════════════════════════════════════════════════════════
 
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './hooks/useAuth';
-import ProtectedRoute from './components/ProtectedRoute';
-import Login      from './pages/Login';
-import Dashboard  from './pages/Dashboard';
-import ClientForm from './pages/ClientForm';
+import { AuthProvider } from '@/hooks/useAuth';
+import ProtectedRoute from '@/components/ProtectedRoute';
+import Login from '@/pages/Login';
+import Dashboard from '@/pages/Dashboard';
+import ClientForm from '@/pages/ClientForm';
 
 export default function App() {
   return (

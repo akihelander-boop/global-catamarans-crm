@@ -5,7 +5,8 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '@/hooks/useAuth';
+import { BrandLogo } from '@/components/BrandLogo';
 
 export default function Login() {
   const { signIn } = useAuth();
@@ -33,7 +34,7 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
 
       {/* Ocean gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#0d2a56] via-[#1a4080] to-[#0a7fa0]" />
+      <div className="absolute inset-0 bg-gradient-to-br from-primary via-[hsl(206_66%_24%)] to-accent" />
 
       {/* Wave decoration */}
       <div
@@ -46,24 +47,19 @@ export default function Login() {
 
       <div className="relative z-10 w-full max-w-sm px-4">
 
-        {/* Logo */}
+        {/* Logo — same family as globalcatamarans.com */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-3 mb-1">
-            <svg viewBox="0 0 48 48" className="w-12 h-12" fill="none" aria-label="Global Catamarans">
-              <path d="M24 4L8 40l16-5 16 5Z" fill="#00a8cc" fillOpacity=".95"/>
-              <path d="M13 40Q24 45 35 40" stroke="#00a8cc" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
-              <path d="M3 44L45 44" stroke="white" strokeWidth="2" strokeLinecap="round" strokeOpacity=".4"/>
-            </svg>
-            <div className="text-left">
-              <p className="text-white font-bold text-xl leading-tight">Global Catamarans</p>
-              <p className="text-blue-300 text-xs tracking-widest uppercase">CRM · Internal</p>
-            </div>
+          <div className="inline-flex flex-col items-center gap-2">
+            <BrandLogo variant="onDark" className="h-14 sm:h-16 max-w-[280px] mx-auto" />
+            <p className="text-primary-foreground/80 text-xs tracking-widest uppercase font-medium">
+              CRM · Internal
+            </p>
           </div>
         </div>
 
         {/* Card */}
         <div className="bg-white rounded-2xl shadow-2xl p-8">
-          <h1 className="text-[#1a3a6b] font-bold text-lg mb-1">Sign in</h1>
+          <h1 className="text-card-foreground font-bold text-lg mb-1">Sign in</h1>
           <p className="text-gray-500 text-sm mb-6">Access the client management dashboard</p>
 
           {error && (
@@ -89,8 +85,8 @@ export default function Login() {
                 placeholder="you@globalcatamarans.com"
                 required
                 disabled={loading}
-                className="w-full px-3.5 py-2.5 rounded-lg border border-gray-200 text-sm
-                           focus:outline-none focus:ring-2 focus:ring-[#2c5aa0]/30 focus:border-[#2c5aa0]
+                className="w-full px-3.5 py-2.5 rounded-lg border border-border text-sm
+                           focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-ring
                            disabled:opacity-60 transition"
               />
             </div>
@@ -107,8 +103,8 @@ export default function Login() {
                 placeholder="••••••••"
                 required
                 disabled={loading}
-                className="w-full px-3.5 py-2.5 rounded-lg border border-gray-200 text-sm
-                           focus:outline-none focus:ring-2 focus:ring-[#2c5aa0]/30 focus:border-[#2c5aa0]
+                className="w-full px-3.5 py-2.5 rounded-lg border border-border text-sm
+                           focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-ring
                            disabled:opacity-60 transition"
               />
             </div>
@@ -116,8 +112,8 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 rounded-lg bg-[#2c5aa0] hover:bg-[#1a4080] active:scale-[.98]
-                         text-white font-semibold text-sm transition-all disabled:opacity-60 mt-2"
+              className="w-full py-2.5 rounded-lg bg-primary hover:bg-primary/90 active:scale-[.98]
+                         text-primary-foreground font-semibold text-sm transition-all disabled:opacity-60 mt-2"
             >
               {loading ? 'Signing in…' : 'Sign in'}
             </button>
@@ -128,7 +124,7 @@ export default function Login() {
           </p>
         </div>
 
-        <p className="text-center text-blue-300/50 text-xs mt-6">
+        <p className="text-center text-primary-foreground/45 text-xs mt-6">
           © {new Date().getFullYear()} Global Catamarans · Internal use only
         </p>
       </div>
