@@ -12,7 +12,7 @@
 // ═══════════════════════════════════════════════════════════════
 
 import { createClient } from '@supabase/supabase-js';
-import type { Activity, ActivityType, Client, Profile } from '@/types';
+import type { Activity, ActivityType, ActivityWithClient, Client, Profile } from '@/types';
 
 const supabaseUrl  = import.meta.env.VITE_SUPABASE_URL  as string;
 const supabaseKey  = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
@@ -167,6 +167,24 @@ export async function listActivitiesForBuyer(buyerId: string): Promise<Activity[
   return (data ?? []) as Activity[];
 }
 
+/** All recent activities across clients (newest first), with client name for display. */
+export async function listRecentActivitiesGlobal(limit = 100): Promise<ActivityWithClient[]> {
+  const { data, error } = await supabase
+    .from('activities')
+    .select(`
+      *,
+      clients (
+        id,
+        name
+      )
+    `)
+    .order('occurred_at', { ascending: false })
+    .limit(limit);
+
+  if (error) { console.error('listRecentActivitiesGlobal:', error); return []; }
+  return (data ?? []) as ActivityWithClient[];
+}
+
 export async function createActivity(payload: {
   type: ActivityType;
   note?: string | null;
@@ -174,7 +192,7 @@ export async function createActivity(payload: {
   boat_id?: string | null;
   /** ISO string; defaults to now on server */
   occurred_at?: string;
-}): Promise<Activity | null> {
+}): Promise<{ activity: Activity | null; error: string | null }> {
   const { data: { user } } = await supabase.auth.getUser();
 
   const row = {
@@ -192,6 +210,9 @@ export async function createActivity(payload: {
     .select()
     .single();
 
-  if (error) { console.error('createActivity:', error); return null; }
-  return data as Activity;
+  if (error) {
+    console.error('createActivity:', error);
+    return { activity: null, error: error.message };
+  }
+  return { activity: data as Activity, error: null };
 }

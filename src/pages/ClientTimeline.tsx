@@ -11,37 +11,8 @@ import {
   createActivity,
   getProfilesByIds,
 } from '@/lib/supabaseClient';
+import { ACTIVITY_TYPE_LABEL, ACTIVITY_TYPE_ORDER, formatActivityWhen } from '@/lib/activityLabels';
 import type { Activity, ActivityType, Client, Profile } from '@/types';
-
-const TYPE_LABEL: Record<ActivityType, string> = {
-  call: 'Phone call',
-  email: 'Email',
-  linkedin: 'LinkedIn',
-  whatsapp: 'WhatsApp',
-  viewing: 'Viewing',
-  offer: 'Offer',
-  contract: 'Contract',
-  website_visit: 'Website visit',
-  note: 'Note',
-  other: 'Other',
-};
-
-const TYPE_ORDER: ActivityType[] = [
-  'call', 'email', 'linkedin', 'whatsapp',
-  'viewing', 'offer', 'contract',
-  'website_visit', 'note', 'other',
-];
-
-function fmtWhen(iso: string) {
-  try {
-    return new Date(iso).toLocaleString(undefined, {
-      dateStyle: 'medium',
-      timeStyle: 'short',
-    });
-  } catch {
-    return iso;
-  }
-}
 
 export default function ClientTimeline() {
   const { id: buyerId } = useParams<{ id: string }>();
@@ -118,7 +89,7 @@ export default function ClientTimeline() {
       ? new Date(occurredLocal).toISOString()
       : undefined;
     const boat_id = boatId.trim() || null;
-    const created = await createActivity({
+    const { activity: created, error: createErr } = await createActivity({
       type,
       note: note.trim() || null,
       buyer_id: buyerId,
@@ -133,7 +104,10 @@ export default function ClientTimeline() {
       setType('note');
       await refreshTimeline();
     } else {
-      setSaveError('Could not save activity. Check Supabase table `activities` and RLS.');
+      setSaveError(
+        createErr ??
+          'Could not save activity. Check Supabase table `activities` and RLS.',
+      );
     }
   };
 
@@ -172,43 +146,63 @@ export default function ClientTimeline() {
 
   return (
     <Layout>
-      <div className="p-6 max-w-3xl mx-auto pb-24 md:pb-8">
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
-          <div className="flex items-start gap-3">
-            <button
-              type="button"
-              onClick={() => navigate('/')}
-              className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors shrink-0"
-              aria-label="Back"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path d="M19 12H5M12 19l-7-7 7-7"/>
-              </svg>
-            </button>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-1">
-                Activity timeline
-              </p>
-              <h1 className="text-xl font-bold text-foreground">{client.name}</h1>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                Full history for your team — contacts, meetings, documents, and more.
-              </p>
+      <div className="p-6 max-w-5xl mx-auto pb-24 md:pb-8">
+        {/* Prominent header */}
+        <div className="rounded-2xl border border-primary/25 bg-gradient-to-br from-primary/[0.12] via-card to-card shadow-sm mb-8 overflow-hidden">
+          <div className="p-6 sm:p-8 flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+            <div className="flex items-start gap-4 min-w-0">
+              <button
+                type="button"
+                onClick={() => navigate('/')}
+                className="p-2.5 rounded-xl bg-background/80 border border-border/80 hover:bg-muted text-muted-foreground transition-colors shrink-0"
+                aria-label="Back"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+              </button>
+              <div className="flex gap-4 min-w-0">
+                <div className="hidden sm:flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-md">
+                  <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary mb-2">
+                    Activity timeline
+                  </p>
+                  <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight break-words">
+                    {client.name}
+                  </h1>
+                  <p className="text-sm text-muted-foreground mt-2 max-w-xl">
+                    Log every touchpoint here — calls, messages, viewings and notes. The whole team sees this history.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 shrink-0 lg:pt-1">
+              <Link
+                to="/activity"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-border bg-background/90 text-sm font-semibold hover:bg-muted transition-colors"
+              >
+                All client activity
+              </Link>
+              <Link
+                to={`/clients/${buyerId}`}
+                className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold shadow-sm hover:bg-primary/90 transition-colors"
+              >
+                Edit client profile
+              </Link>
             </div>
           </div>
-          <Link
-            to={`/clients/${buyerId}`}
-            className="inline-flex items-center justify-center px-4 py-2 rounded-lg border border-border text-sm font-medium hover:bg-muted transition-colors shrink-0"
-          >
-            Edit client profile
-          </Link>
         </div>
 
         {/* Add activity */}
         <form
           onSubmit={handleAdd}
-          className="bg-card border border-border rounded-xl shadow-sm p-5 mb-8 space-y-4"
+          className="bg-card border-2 border-border rounded-2xl shadow-md p-6 mb-10 space-y-4"
         >
-          <h2 className="text-sm font-semibold text-foreground">Log activity</h2>
+          <h2 className="text-base font-bold text-foreground">Log new activity</h2>
           {saveError && (
             <p className="text-sm text-red-600">{saveError}</p>
           )}
@@ -220,8 +214,8 @@ export default function ClientTimeline() {
                 onChange={e => setType(e.target.value as ActivityType)}
                 className="w-full px-3 py-2.5 rounded-lg border border-border text-sm bg-background"
               >
-                {TYPE_ORDER.map(t => (
-                  <option key={t} value={t}>{TYPE_LABEL[t]}</option>
+                {ACTIVITY_TYPE_ORDER.map(t => (
+                  <option key={t} value={t}>{ACTIVITY_TYPE_LABEL[t]}</option>
                 ))}
               </select>
             </div>
@@ -268,21 +262,26 @@ export default function ClientTimeline() {
         </form>
 
         {/* Timeline */}
-        <h2 className="text-sm font-semibold text-foreground mb-3">History</h2>
+        <h2 className="text-lg font-bold text-foreground mb-4">History</h2>
         {activities.length === 0 ? (
-          <div className="text-center py-12 px-4 rounded-xl border border-dashed border-border text-muted-foreground text-sm">
+          <div className="text-center py-14 px-4 rounded-2xl border-2 border-dashed border-border bg-muted/30 text-muted-foreground text-sm">
             No activities yet. Log a call, email, or note above.
           </div>
         ) : (
-          <ul className="space-y-0 border border-border rounded-xl overflow-hidden bg-card divide-y divide-border">
+          <ul className="space-y-0 border-2 border-border rounded-2xl overflow-hidden bg-card divide-y divide-border shadow-sm">
             {activities.map(a => (
-              <li key={a.id} className="p-4 sm:p-5">
+              <li key={a.id} className="p-4 sm:p-5 flex gap-3">
+                <div
+                  className="w-1 shrink-0 rounded-full bg-primary/70 self-stretch min-h-[2.5rem]"
+                  aria-hidden
+                />
+                <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-baseline justify-between gap-2 mb-1">
-                  <span className="font-semibold text-foreground">
-                    {TYPE_LABEL[a.type] ?? a.type}
+                  <span className="font-semibold text-foreground text-base">
+                    {ACTIVITY_TYPE_LABEL[a.type] ?? a.type}
                   </span>
                   <time className="text-xs text-muted-foreground tabular-nums" dateTime={a.occurred_at}>
-                    {fmtWhen(a.occurred_at)}
+                    {formatActivityWhen(a.occurred_at)}
                   </time>
                 </div>
                 <p className="text-xs text-muted-foreground mb-2">
@@ -294,6 +293,7 @@ export default function ClientTimeline() {
                 {a.note && (
                   <p className="text-sm text-foreground whitespace-pre-wrap">{a.note}</p>
                 )}
+                </div>
               </li>
             ))}
           </ul>

@@ -7,7 +7,8 @@ create table if not exists public.activities (
   note text,
   buyer_id uuid not null references public.clients(id) on delete cascade,
   boat_id uuid null,
-  user_id uuid null references public.profiles(id) on delete set null,
+  -- Must reference auth.users: not every auth user has a row in public.profiles yet.
+  user_id uuid null references auth.users(id) on delete set null,
   occurred_at timestamptz not null default now(),
   created_at timestamptz not null default now(),
   constraint activities_type_check check (

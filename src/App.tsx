@@ -9,6 +9,7 @@ import Login from '@/pages/Login';
 import Dashboard from '@/pages/Dashboard';
 import ClientForm from '@/pages/ClientForm';
 import ClientTimeline from '@/pages/ClientTimeline';
+import ActivityFeedPage from '@/pages/ActivityFeedPage';
 import Team from '@/pages/Team';
 
 export default function App() {
@@ -22,6 +23,9 @@ export default function App() {
           {/* Protected — any authenticated user */}
           <Route path="/" element={
             <ProtectedRoute><Dashboard /></ProtectedRoute>
+          } />
+          <Route path="/activity" element={
+            <ProtectedRoute><ActivityFeedPage /></ProtectedRoute>
           } />
           <Route path="/clients" element={
             <ProtectedRoute><Navigate to="/" replace /></ProtectedRoute>

@@ -3,11 +3,12 @@
 // ═══════════════════════════════════════════════════════════════
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { listClients, deleteClient } from '@/lib/supabaseClient';
+import { Link, useNavigate } from 'react-router-dom';
+import { listClients, deleteClient, getProfilesByIds, listRecentActivitiesGlobal } from '@/lib/supabaseClient';
 import { useAuth } from '@/hooks/useAuth';
-import type { Client } from '@/types';
+import type { ActivityWithClient, Client, Profile } from '@/types';
 import Layout from '@/components/Layout';
+import ActivityFeedList from '@/components/ActivityFeedList';
 
 // ── Helpers ─────────────────────────────────────────────────────
 const SCORE_LABEL: Record<number, string> = {
@@ -49,6 +50,10 @@ export default function Dashboard() {
   const [deleting,     setDeleting]     = useState(false);
   const [deleteError,  setDeleteError]  = useState<string | null>(null);
 
+  const [feedItems, setFeedItems] = useState<ActivityWithClient[]>([]);
+  const [feedProfiles, setFeedProfiles] = useState<Map<string, Profile>>(new Map());
+  const [feedLoading, setFeedLoading] = useState(true);
+
   const load = useCallback(async () => {
     setLoading(true);
     const data = await listClients({
@@ -67,6 +72,24 @@ export default function Dashboard() {
     }, search ? 300 : 0);
     return () => clearTimeout(t);
   }, [search, scoreFilter, typeFilter, load]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setFeedLoading(true);
+      const rows = await listRecentActivitiesGlobal(16);
+      if (cancelled) return;
+      setFeedItems(rows);
+      const authorIds = rows.map(r => r.user_id).filter((x): x is string => !!x);
+      const profs = await getProfilesByIds(authorIds);
+      if (cancelled) return;
+      setFeedProfiles(new Map(profs.map(p => [p.id, p])));
+      setFeedLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const stats = useMemo(() => ({
     total:         clients.length,
@@ -117,6 +140,48 @@ export default function Dashboard() {
             Add client
           </button>
         </div>
+
+        {/* Global activity — visible first on the home dashboard */}
+        <section className="mb-8 rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/[0.07] via-card to-card shadow-sm overflow-hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 py-4 border-b border-border/80 bg-card/80">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-base font-bold text-foreground tracking-tight">
+                  Team activity
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Recent contact and notes across all clients
+                </p>
+              </div>
+            </div>
+            <Link
+              to="/activity"
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold shadow-sm hover:bg-primary/90 transition-colors shrink-0"
+            >
+              See all activity
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path d="M9 5l7 7-7 7"/>
+              </svg>
+            </Link>
+          </div>
+          <div className="p-4 sm:p-5">
+            {feedLoading ? (
+              <div className="text-center py-10 text-muted-foreground text-sm">Loading activity…</div>
+            ) : (
+              <ActivityFeedList
+                items={feedItems}
+                profiles={feedProfiles}
+                compact
+                emptyMessage="No activity logged yet. Open a client and use Activity timeline to log calls, emails and meetings."
+              />
+            )}
+          </div>
+        </section>
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
@@ -258,7 +323,7 @@ export default function Dashboard() {
                         <div className="flex gap-1.5 justify-end">
                           <button
                             onClick={() => navigate(`/clients/${client.id}/activity`)}
-                            className="p-1.5 rounded hover:bg-secondary text-primary transition-colors"
+                            className="p-1.5 rounded-lg hover:bg-primary/15 text-primary transition-colors ring-1 ring-transparent hover:ring-primary/25"
                             title="Activity timeline"
                           >
                             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

@@ -109,3 +109,8 @@ export interface Activity {
   occurred_at: string;
   created_at: string;
 }
+
+/** Activity with joined client row (global feed queries). */
+export interface ActivityWithClient extends Activity {
+  clients: { id: string; name: string } | null;
+}
