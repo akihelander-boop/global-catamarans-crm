@@ -12,7 +12,7 @@
 // ═══════════════════════════════════════════════════════════════
 
 import { createClient } from '@supabase/supabase-js';
-import type { Client, Profile } from '@/types';
+import type { Activity, ActivityType, Client, Profile } from '@/types';
 
 const supabaseUrl  = import.meta.env.VITE_SUPABASE_URL  as string;
 const supabaseKey  = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
@@ -139,4 +139,59 @@ export async function listProfiles(): Promise<Profile[]> {
 
   if (error) { console.error('listProfiles:', error); return []; }
   return (data ?? []) as Profile[];
+}
+
+/** Profiles for a set of user ids (timeline authors). */
+export async function getProfilesByIds(ids: string[]): Promise<Profile[]> {
+  const unique = [...new Set(ids.filter(Boolean))];
+  if (unique.length === 0) return [];
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .in('id', unique);
+
+  if (error) { console.error('getProfilesByIds:', error); return []; }
+  return (data ?? []) as Profile[];
+}
+
+/** Activity timeline for one client (`buyer_id` = `clients.id`). */
+export async function listActivitiesForBuyer(buyerId: string): Promise<Activity[]> {
+  const { data, error } = await supabase
+    .from('activities')
+    .select('*')
+    .eq('buyer_id', buyerId)
+    .order('occurred_at', { ascending: false });
+
+  if (error) { console.error('listActivitiesForBuyer:', error); return []; }
+  return (data ?? []) as Activity[];
+}
+
+export async function createActivity(payload: {
+  type: ActivityType;
+  note?: string | null;
+  buyer_id: string;
+  boat_id?: string | null;
+  /** ISO string; defaults to now on server */
+  occurred_at?: string;
+}): Promise<Activity | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const row = {
+    type: payload.type,
+    note: payload.note ?? null,
+    buyer_id: payload.buyer_id,
+    boat_id: payload.boat_id ?? null,
+    user_id: user?.id ?? null,
+    ...(payload.occurred_at ? { occurred_at: payload.occurred_at } : {}),
+  };
+
+  const { data, error } = await supabase
+    .from('activities')
+    .insert(row)
+    .select()
+    .single();
+
+  if (error) { console.error('createActivity:', error); return null; }
+  return data as Activity;
 }

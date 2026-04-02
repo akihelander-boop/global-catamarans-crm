@@ -84,3 +84,28 @@ export interface Client {
 
 // Partial version used for form state (all optional except name)
 export type ClientFormData = Omit<Client, 'id' | 'created_at' | 'updated_at' | 'created_by'>;
+
+/** Activity timeline — maps to `activities` table (buyer = client). */
+export type ActivityType =
+  | 'call'
+  | 'email'
+  | 'linkedin'
+  | 'whatsapp'
+  | 'viewing'
+  | 'offer'
+  | 'contract'
+  | 'website_visit'
+  | 'note'
+  | 'other';
+
+export interface Activity {
+  id: string;
+  type: ActivityType;
+  note: string | null;
+  buyer_id: string;
+  boat_id: string | null;
+  user_id: string | null;
+  /** When the interaction happened (sort key for timeline). */
+  occurred_at: string;
+  created_at: string;
+}

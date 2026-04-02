@@ -4,7 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   getClient, createClient_, updateClient,
 } from '@/lib/supabaseClient';
@@ -275,23 +275,36 @@ export default function ClientForm() {
       <div className="p-6 max-w-3xl mx-auto">
 
         {/* Page header */}
-        <div className="flex items-center gap-3 mb-6">
-          <button
-            onClick={() => navigate('/')}
-            className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path d="M19 12H5M12 19l-7-7 7-7"/>
-            </svg>
-          </button>
-          <div>
-            <h1 className="text-xl font-bold text-foreground">
-              {isNew ? 'New client' : form.name || 'Edit client'}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {isNew ? 'Create a new intake record' : 'Update client record'}
-            </p>
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/')}
+              className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+              </svg>
+            </button>
+            <div>
+              <h1 className="text-xl font-bold text-foreground">
+                {isNew ? 'New client' : form.name || 'Edit client'}
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                {isNew ? 'Create a new intake record' : 'Update client record'}
+              </p>
+            </div>
           </div>
+          {!isNew && id && (
+            <Link
+              to={`/clients/${id}/activity`}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-border text-sm font-medium text-primary hover:bg-secondary transition-colors shrink-0"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              Activity timeline
+            </Link>
+          )}
         </div>
 
         {/* Tab bar */}

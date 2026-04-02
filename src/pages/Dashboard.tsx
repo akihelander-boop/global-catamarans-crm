@@ -257,6 +257,15 @@ export default function Dashboard() {
                       <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                         <div className="flex gap-1.5 justify-end">
                           <button
+                            onClick={() => navigate(`/clients/${client.id}/activity`)}
+                            className="p-1.5 rounded hover:bg-secondary text-primary transition-colors"
+                            title="Activity timeline"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                          </button>
+                          <button
                             onClick={() => navigate(`/clients/${client.id}`)}
                             className="p-1.5 rounded hover:bg-secondary text-primary transition-colors"
                             title="Edit"

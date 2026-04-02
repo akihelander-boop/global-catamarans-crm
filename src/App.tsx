@@ -8,6 +8,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import Login from '@/pages/Login';
 import Dashboard from '@/pages/Dashboard';
 import ClientForm from '@/pages/ClientForm';
+import ClientTimeline from '@/pages/ClientTimeline';
 import Team from '@/pages/Team';
 
 export default function App() {
@@ -27,6 +28,9 @@ export default function App() {
           } />
           <Route path="/clients/new" element={
             <ProtectedRoute><ClientForm /></ProtectedRoute>
+          } />
+          <Route path="/clients/:id/activity" element={
+            <ProtectedRoute><ClientTimeline /></ProtectedRoute>
           } />
           <Route path="/clients/:id" element={
             <ProtectedRoute><ClientForm /></ProtectedRoute>
