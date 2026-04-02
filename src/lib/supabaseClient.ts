@@ -62,7 +62,7 @@ export async function listClients(opts?: {
     .select('*')
     .order('updated_at', { ascending: false });
 
-  if (opts?.potentialScore) {
+  if (opts?.potentialScore != null) {
     query = query.eq('potential_score', opts.potentialScore);
   }
   if (opts?.customerType && opts.customerType !== 'all') {

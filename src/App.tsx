@@ -8,6 +8,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import Login from '@/pages/Login';
 import Dashboard from '@/pages/Dashboard';
 import ClientForm from '@/pages/ClientForm';
+import Team from '@/pages/Team';
 
 export default function App() {
   return (
@@ -29,6 +30,9 @@ export default function App() {
           } />
           <Route path="/clients/:id" element={
             <ProtectedRoute><ClientForm /></ProtectedRoute>
+          } />
+          <Route path="/team" element={
+            <ProtectedRoute><Team /></ProtectedRoute>
           } />
 
           {/* Catch-all */}

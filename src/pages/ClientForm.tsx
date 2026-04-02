@@ -53,6 +53,32 @@ const TABS = [
 ] as const;
 type TabId = typeof TABS[number]['id'];
 
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error('Timed out while saving'));
+    }, ms);
+    promise
+      .then((value) => {
+        clearTimeout(timer);
+        resolve(value);
+      })
+      .catch((error: unknown) => {
+        clearTimeout(timer);
+        reject(error);
+      });
+  });
+}
+
+/** Synchronous validation — avoids stale `errors` state in submit handler */
+function getFieldErrors(form: ClientFormData): Partial<Record<keyof ClientFormData, string>> {
+  const e: Partial<Record<keyof ClientFormData, string>> = {};
+  if (!form.name.trim()) e.name = 'Name is required';
+  if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
+    e.email = 'Enter a valid email address';
+  return e;
+}
+
 // ── Small reusable field components ──────────────────────────────
 function Field({
   label, required, hint, children,
@@ -135,6 +161,7 @@ export default function ClientForm() {
   const [loading,   setLoading]   = useState(!isNew);
   const [saving,    setSaving]    = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [errors,    setErrors]    = useState<Partial<Record<keyof ClientFormData, string>>>({});
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -142,14 +169,17 @@ export default function ClientForm() {
   useEffect(() => {
     if (isNew) return;
     (async () => {
+      setLoadError(null);
       const data = await getClient(id!);
       if (data) {
-        const { id, created_at, updated_at, created_by, ...rest } = data;
-        void id;
+        const { id: rowId, created_at, updated_at, created_by, ...rest } = data;
+        void rowId;
         void created_at;
         void updated_at;
         void created_by;
         setForm({ ...EMPTY, ...rest });
+      } else {
+        setLoadError('Could not load this client. It may have been deleted or you may not have access.');
       }
       setLoading(false);
     })();
@@ -169,45 +199,19 @@ export default function ClientForm() {
     set('intended_use', cur.includes(val) ? cur.filter(v => v !== val) : [...cur, val]);
   };
 
-  // Validation
-  const validate = () => {
-    const e: typeof errors = {};
-    if (!form.name.trim()) e.name = 'Name is required';
-    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
-      e.email = 'Enter a valid email address';
-    setErrors(e);
-    return Object.keys(e).length === 0;
-  };
-
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     setSaveError(null);
-    if (!validate()) {
-      // Jump to first tab with errors
-      if (errors.name || errors.email) setTab('contact');
+    const fieldErrors = getFieldErrors(form);
+    setErrors(fieldErrors);
+    if (Object.keys(fieldErrors).length > 0) {
+      if (fieldErrors.name || fieldErrors.email) setTab('contact');
       return;
     }
     setShowConfirm(true);
   };
 
   const handleSave = async () => {
-    const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> => {
-      return new Promise<T>((resolve, reject) => {
-        const timer = setTimeout(() => {
-          reject(new Error('Timed out while saving'));
-        }, ms);
-        promise
-          .then((value) => {
-            clearTimeout(timer);
-            resolve(value);
-          })
-          .catch((error) => {
-            clearTimeout(timer);
-            reject(error);
-          });
-      });
-    };
-
     setSaving(true);
     setSaveError(null);
     setShowConfirm(false);
@@ -221,10 +225,15 @@ export default function ClientForm() {
       if (saved) {
         navigate('/');
       } else {
-        setSaveError('Save failed. Please check your connection and try again.');
+        setSaveError('Save failed (permission denied or server error). Check Supabase policies and try again.');
       }
-    } catch {
-      setSaveError('Save timed out. Please try again.');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes('Timed out while saving')) {
+        setSaveError('Save timed out. Please try again.');
+      } else {
+        setSaveError('Save failed. Please try again.');
+      }
     } finally {
       setSaving(false);
     }
@@ -234,6 +243,23 @@ export default function ClientForm() {
     return (
       <Layout>
         <div className="p-8 text-center text-muted-foreground text-sm">Loading client…</div>
+      </Layout>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <Layout>
+        <div className="p-8 max-w-md mx-auto text-center space-y-4">
+          <p className="text-red-600 text-sm">{loadError}</p>
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold"
+          >
+            Back to dashboard
+          </button>
+        </div>
       </Layout>
     );
   }

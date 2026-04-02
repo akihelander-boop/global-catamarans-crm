@@ -27,7 +27,7 @@ function fmt(d?: string | null) {
 }
 
 function ScorePill({ score }: { score: number | null }) {
-  if (!score) return <span className="text-gray-400 text-xs">—</span>;
+  if (score == null || score === 0) return <span className="text-gray-400 text-xs">—</span>;
   return (
     <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${SCORE_COLOR[score]}`}>
       {score} · {SCORE_LABEL[score]}
@@ -47,6 +47,7 @@ export default function Dashboard() {
   const [typeFilter,   setTypeFilter]   = useState('');
   const [deleteTarget, setDeleteTarget] = useState<Client | null>(null);
   const [deleting,     setDeleting]     = useState(false);
+  const [deleteError,  setDeleteError]  = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -77,10 +78,15 @@ export default function Dashboard() {
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
-    await deleteClient(deleteTarget.id);
-    setDeleteTarget(null);
+    setDeleteError(null);
+    const ok = await deleteClient(deleteTarget.id);
     setDeleting(false);
-    load();
+    if (ok) {
+      setDeleteTarget(null);
+      void load();
+    } else {
+      setDeleteError('Could not delete this client. You may not have permission.');
+    }
   };
 
   return (
@@ -262,7 +268,7 @@ export default function Dashboard() {
                           </button>
                           {isAdmin && (
                             <button
-                              onClick={() => setDeleteTarget(client)}
+                              onClick={() => { setDeleteError(null); setDeleteTarget(client); }}
                               className="p-1.5 rounded hover:bg-red-100 text-red-400 transition-colors"
                               title="Delete"
                             >
@@ -291,15 +297,18 @@ export default function Dashboard() {
       {/* Delete confirmation modal */}
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setDeleteTarget(null)} />
+          <div className="absolute inset-0 bg-black/40" onClick={() => { setDeleteError(null); setDeleteTarget(null); }} />
           <div className="relative bg-card rounded-2xl shadow-xl p-6 w-full max-w-sm border border-border">
             <h2 className="font-bold text-foreground mb-2">Delete client?</h2>
             <p className="text-sm text-gray-500 mb-6">
               This will permanently delete <strong>{deleteTarget.name}</strong> and all their data. This cannot be undone.
             </p>
+            {deleteError && (
+              <p className="text-sm text-red-600 mb-4">{deleteError}</p>
+            )}
             <div className="flex gap-3 justify-end">
               <button
-                onClick={() => setDeleteTarget(null)}
+                onClick={() => { setDeleteError(null); setDeleteTarget(null); }}
                 className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium hover:bg-gray-50"
               >
                 Cancel

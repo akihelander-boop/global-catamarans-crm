@@ -2,33 +2,45 @@
 // Login Page
 // ═══════════════════════════════════════════════════════════════
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { BrandLogo } from '@/components/BrandLogo';
 
 export default function Login() {
-  const { signIn } = useAuth();
+  const { signIn, session, loading } = useAuth();
   const navigate   = useNavigate();
 
   const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
   const [error,    setError]    = useState('');
-  const [loading,  setLoading]  = useState(false);
+  const [submitting, setSubmitting]  = useState(false);
+
+  useEffect(() => {
+    if (!loading && session) navigate('/', { replace: true });
+  }, [loading, session, navigate]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
+    setSubmitting(true);
     const { error } = await signIn(email.trim(), password);
-    setLoading(false);
+    setSubmitting(false);
     if (error) {
       setError(error);
     } else {
       navigate('/');
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p className="text-sm text-muted-foreground">Loading…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
@@ -84,7 +96,7 @@ export default function Login() {
                 onChange={e => setEmail(e.target.value)}
                 placeholder="you@globalcatamarans.com"
                 required
-                disabled={loading}
+                disabled={submitting}
                 className="w-full px-3.5 py-2.5 rounded-lg border border-border text-sm
                            focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-ring
                            disabled:opacity-60 transition"
@@ -102,7 +114,7 @@ export default function Login() {
                 onChange={e => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                disabled={loading}
+                disabled={submitting}
                 className="w-full px-3.5 py-2.5 rounded-lg border border-border text-sm
                            focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-ring
                            disabled:opacity-60 transition"
@@ -111,11 +123,11 @@ export default function Login() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={submitting}
               className="w-full py-2.5 rounded-lg bg-primary hover:bg-primary/90 active:scale-[.98]
                          text-primary-foreground font-semibold text-sm transition-all disabled:opacity-60 mt-2"
             >
-              {loading ? 'Signing in…' : 'Sign in'}
+              {submitting ? 'Signing in…' : 'Sign in'}
             </button>
           </form>
 
