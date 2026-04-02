@@ -7,9 +7,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import {
   createCrmTask,
+  getAssignableProfiles,
+  getProfilesByIds,
   listClients,
   listCrmTasks,
-  listProfiles,
   updateCrmTaskStatus,
 } from '@/lib/supabaseClient';
 import type { ListCrmTasksScope } from '@/lib/supabaseClient';
@@ -45,16 +46,23 @@ export default function Tasks() {
   const [channel, setChannel] = useState<CrmReminderChannel>('in_app');
   const [waPhone, setWaPhone] = useState('');
   const [notes, setNotes] = useState('');
+  const [assigneeListIsFallback, setAssigneeListIsFallback] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [taskList, profs, cl] = await Promise.all([
-      listCrmTasks({ scope, includeDone: false }),
-      listProfiles(),
-      listClients({}),
-    ]);
+    const taskList = await listCrmTasks({ scope, includeDone: false });
     setRows(taskList);
-    setProfiles(profs);
+
+    const { profiles: baseProfs, usedAuthFallback } = await getAssignableProfiles();
+    setAssigneeListIsFallback(usedAuthFallback);
+    const assigneeIds = [...new Set(taskList.map(t => t.assigned_to))];
+    const missingIds = assigneeIds.filter(id => !baseProfs.some(p => p.id === id));
+    const extra = missingIds.length > 0 ? await getProfilesByIds(missingIds) : [];
+    const merged = new Map<string, Profile>();
+    for (const p of [...baseProfs, ...extra]) merged.set(p.id, p);
+    setProfiles([...merged.values()]);
+
+    const cl = await listClients({});
     setClients(cl.slice(0, 300));
     setLoading(false);
   }, [scope]);
@@ -150,6 +158,17 @@ export default function Tasks() {
         {/* Create */}
         <section className="rounded-2xl border-2 border-border bg-card shadow-sm p-6 mb-10">
           <h2 className="text-base font-bold text-foreground mb-4">New task</h2>
+          {assigneeListIsFallback && (
+            <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+              <p className="font-semibold">Team list not loaded from the database</p>
+              <p className="mt-1 text-amber-900/90">
+                Only your account appears for now — you can still save tasks assigned to yourself.
+                To list everyone: add a row in <code className="bg-amber-100/80 px-1 rounded">public.profiles</code> for each
+                CRM user (id = auth user id) and ensure RLS allows SELECT on profiles (migration includes policy{' '}
+                <code className="bg-amber-100/80 px-1 rounded">profiles_select_team_crm</code>).
+              </p>
+            </div>
+          )}
           {formError && <p className="text-sm text-red-600 mb-4">{formError}</p>}
           <form onSubmit={handleCreate} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

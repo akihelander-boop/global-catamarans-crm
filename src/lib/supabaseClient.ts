@@ -141,7 +141,7 @@ export async function deleteClient(id: string): Promise<boolean> {
   return true;
 }
 
-/** List all profiles (admin only — enforced by RLS) */
+/** List all profiles (RLS may restrict — see getAssignableProfiles for task assignee picker). */
 export async function listProfiles(): Promise<Profile[]> {
   const { data, error } = await supabase
     .from('profiles')
@@ -150,6 +150,32 @@ export async function listProfiles(): Promise<Profile[]> {
 
   if (error) { console.error('listProfiles:', error); return []; }
   return (data ?? []) as Profile[];
+}
+
+/**
+ * Users who can receive a task assignment. Uses `profiles`; if that is empty (no rows or RLS),
+ * falls back to the signed-in user so the Tasks form always has at least one assignee.
+ */
+export async function getAssignableProfiles(): Promise<{
+  profiles: Profile[];
+  usedAuthFallback: boolean;
+}> {
+  const rows = await listProfiles();
+  if (rows.length > 0) return { profiles: rows, usedAuthFallback: false };
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user?.id) return { profiles: [], usedAuthFallback: false };
+
+  return {
+    profiles: [{
+      id: user.id,
+      email: user.email ?? '',
+      full_name: (user.user_metadata?.full_name as string | undefined) ?? null,
+      role: 'sales',
+      created_at: new Date().toISOString(),
+    }],
+    usedAuthFallback: true,
+  };
 }
 
 /** Profiles for a set of user ids (timeline authors). */
