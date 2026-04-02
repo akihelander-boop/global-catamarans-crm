@@ -4,9 +4,18 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { listClients, deleteClient, getProfilesByIds, listRecentActivitiesGlobal } from '@/lib/supabaseClient';
+import {
+  listClients,
+  deleteClient,
+  getProfilesByIds,
+  listCrmTasks,
+  listRecentActivitiesGlobal,
+  updateCrmTaskStatus,
+} from '@/lib/supabaseClient';
+import { CRM_TASK_TYPE_LABEL } from '@/lib/crmTaskLabels';
+import { formatActivityWhen } from '@/lib/activityLabels';
 import { useAuth } from '@/hooks/useAuth';
-import type { ActivityWithClient, Client, Profile } from '@/types';
+import type { ActivityWithClient, Client, CrmTaskWithRelations, Profile } from '@/types';
 import Layout from '@/components/Layout';
 import ActivityFeedList from '@/components/ActivityFeedList';
 
@@ -54,6 +63,9 @@ export default function Dashboard() {
   const [feedProfiles, setFeedProfiles] = useState<Map<string, Profile>>(new Map());
   const [feedLoading, setFeedLoading] = useState(true);
 
+  const [myTasks, setMyTasks] = useState<CrmTaskWithRelations[]>([]);
+  const [tasksLoading, setTasksLoading] = useState(true);
+
   const load = useCallback(async () => {
     setLoading(true);
     const data = await listClients({
@@ -90,6 +102,28 @@ export default function Dashboard() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setTasksLoading(true);
+      const t = await listCrmTasks({ scope: 'assigned_to_me', limit: 8 });
+      if (!cancelled) {
+        setMyTasks(t);
+        setTasksLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const completeTask = async (id: string) => {
+    const { ok } = await updateCrmTaskStatus(id, 'done');
+    if (ok) {
+      setMyTasks(prev => prev.filter(x => x.id !== id));
+    }
+  };
 
   const stats = useMemo(() => ({
     total:         clients.length,
@@ -179,6 +213,67 @@ export default function Dashboard() {
                 compact
                 emptyMessage="No activity logged yet. Open a client and use Activity timeline to log calls, emails and meetings."
               />
+            )}
+          </div>
+        </section>
+
+        {/* My tasks */}
+        <section className="mb-8 rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 py-4 border-b border-border bg-muted/40">
+            <div>
+              <h2 className="text-base font-bold text-foreground tracking-tight">Your tasks</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Assigned to you — calls, emails and messages with a due time
+              </p>
+            </div>
+            <Link
+              to="/tasks"
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg border border-border bg-background text-sm font-semibold hover:bg-muted transition-colors shrink-0"
+            >
+              Open Tasks
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path d="M9 5l7 7-7 7"/>
+              </svg>
+            </Link>
+          </div>
+          <div className="p-4 sm:p-5">
+            {tasksLoading ? (
+              <p className="text-sm text-muted-foreground py-6 text-center">Loading tasks…</p>
+            ) : myTasks.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">
+                No open tasks assigned to you.{' '}
+                <Link to="/tasks" className="text-primary font-medium hover:underline">Create one</Link>
+              </p>
+            ) : (
+              <ul className="divide-y divide-border rounded-xl border border-border overflow-hidden">
+                {myTasks.map(t => (
+                  <li key={t.id} className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 bg-card hover:bg-muted/40 transition-colors">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-foreground">{t.title}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {CRM_TASK_TYPE_LABEL[t.task_type]}
+                        {' · '}
+                        Due {formatActivityWhen(t.due_at)}
+                        {t.clients?.name && (
+                          <>
+                            {' · '}
+                            <span className="text-foreground/80">{t.clients.name}</span>
+                          </>
+                        )}
+                      </p>
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => void completeTask(t.id)}
+                        className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold"
+                      >
+                        Done
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
         </section>

@@ -114,3 +114,34 @@ export interface Activity {
 export interface ActivityWithClient extends Activity {
   clients: { id: string; name: string } | null;
 }
+
+/** Assigned CRM tasks / reminders (`crm_tasks` table). */
+export type CrmTaskType = 'call' | 'email' | 'message';
+
+/** in_app = dashboard only; email / whatsapp need Edge Function + provider keys. */
+export type CrmReminderChannel = 'in_app' | 'email' | 'whatsapp';
+
+export type CrmTaskStatus = 'open' | 'done' | 'cancelled';
+
+export interface CrmTask {
+  id: string;
+  buyer_id: string | null;
+  title: string;
+  task_type: CrmTaskType;
+  assigned_to: string;
+  created_by: string | null;
+  due_at: string;
+  reminder_channel: CrmReminderChannel;
+  /** E.164, e.g. +358401234567 — required in UI when channel is whatsapp. */
+  whatsapp_phone_e164: string | null;
+  reminder_sent_at: string | null;
+  reminder_last_error: string | null;
+  status: CrmTaskStatus;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CrmTaskWithRelations extends CrmTask {
+  clients: { id: string; name: string } | null;
+}

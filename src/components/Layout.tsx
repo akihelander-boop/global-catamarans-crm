@@ -51,6 +51,18 @@ const IconActivity = () => (
   </svg>
 );
 
+const IconTasks = () => (
+  <svg
+    className="w-4 h-4"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2}
+  >
+    <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+  </svg>
+);
+
 const IconLogout = () => (
   <svg
     className="w-4 h-4"
@@ -145,6 +157,7 @@ function SidebarContent({
         </p>
         <NavItem to="/" icon={IconDashboard} label="Dashboard" />
         <NavItem to="/activity" icon={IconActivity} label="Activity" />
+        <NavItem to="/tasks" icon={IconTasks} label="Tasks" />
         <NavItem to="/clients" icon={IconUsers} label="Clients" />
 
         {isAdmin && (

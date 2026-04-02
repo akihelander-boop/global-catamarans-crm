@@ -10,6 +10,7 @@ import Dashboard from '@/pages/Dashboard';
 import ClientForm from '@/pages/ClientForm';
 import ClientTimeline from '@/pages/ClientTimeline';
 import ActivityFeedPage from '@/pages/ActivityFeedPage';
+import Tasks from '@/pages/Tasks';
 import Team from '@/pages/Team';
 
 export default function App() {
@@ -26,6 +27,9 @@ export default function App() {
           } />
           <Route path="/activity" element={
             <ProtectedRoute><ActivityFeedPage /></ProtectedRoute>
+          } />
+          <Route path="/tasks" element={
+            <ProtectedRoute><Tasks /></ProtectedRoute>
           } />
           <Route path="/clients" element={
             <ProtectedRoute><Navigate to="/" replace /></ProtectedRoute>

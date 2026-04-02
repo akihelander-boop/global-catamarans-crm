@@ -12,7 +12,18 @@
 // ═══════════════════════════════════════════════════════════════
 
 import { createClient } from '@supabase/supabase-js';
-import type { Activity, ActivityType, ActivityWithClient, Client, Profile } from '@/types';
+import type {
+  Activity,
+  ActivityType,
+  ActivityWithClient,
+  Client,
+  CrmReminderChannel,
+  CrmTask,
+  CrmTaskStatus,
+  CrmTaskType,
+  CrmTaskWithRelations,
+  Profile,
+} from '@/types';
 
 const supabaseUrl  = import.meta.env.VITE_SUPABASE_URL  as string;
 const supabaseKey  = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
@@ -215,4 +226,128 @@ export async function createActivity(payload: {
     return { activity: null, error: error.message };
   }
   return { activity: data as Activity, error: null };
+}
+
+// ── CRM tasks / reminders ───────────────────────────────────────
+
+export type ListCrmTasksScope = 'assigned_to_me' | 'created_by_me' | 'open_all';
+
+export async function listCrmTasks(opts?: {
+  scope?: ListCrmTasksScope;
+  limit?: number;
+  includeDone?: boolean;
+}): Promise<CrmTaskWithRelations[]> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const scope = opts?.scope ?? 'open_all';
+  let q = supabase
+    .from('crm_tasks')
+    .select(`
+      *,
+      clients ( id, name )
+    `)
+    .order('due_at', { ascending: true });
+
+  if (scope === 'assigned_to_me') {
+    q = q.eq('assigned_to', user.id);
+    if (!opts?.includeDone) q = q.eq('status', 'open');
+  } else if (scope === 'created_by_me') {
+    q = q.eq('created_by', user.id);
+    if (!opts?.includeDone) q = q.eq('status', 'open');
+  } else {
+    q = q.eq('status', 'open');
+  }
+
+  if (opts?.limit) q = q.limit(opts.limit);
+
+  const { data, error } = await q;
+  if (error) { console.error('listCrmTasks:', error); return []; }
+  return (data ?? []) as CrmTaskWithRelations[];
+}
+
+export async function createCrmTask(payload: {
+  title: string;
+  task_type: CrmTaskType;
+  assigned_to: string;
+  buyer_id?: string | null;
+  due_at: string;
+  reminder_channel: CrmReminderChannel;
+  whatsapp_phone_e164?: string | null;
+  notes?: string | null;
+}): Promise<{ task: CrmTask | null; error: string | null }> {
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const row = {
+    title: payload.title.trim(),
+    task_type: payload.task_type,
+    assigned_to: payload.assigned_to,
+    buyer_id: payload.buyer_id ?? null,
+    due_at: payload.due_at,
+    reminder_channel: payload.reminder_channel,
+    whatsapp_phone_e164:
+      payload.reminder_channel === 'whatsapp'
+        ? (payload.whatsapp_phone_e164?.trim() || null)
+        : null,
+    notes: payload.notes?.trim() || null,
+    created_by: user?.id ?? null,
+    status: 'open' as const,
+  };
+
+  const { data, error } = await supabase.from('crm_tasks').insert(row).select().single();
+
+  if (error) {
+    console.error('createCrmTask:', error);
+    return { task: null, error: error.message };
+  }
+  return { task: data as CrmTask, error: null };
+}
+
+export async function updateCrmTaskStatus(
+  id: string,
+  status: CrmTaskStatus,
+): Promise<{ ok: boolean; error: string | null }> {
+  const { error } = await supabase.from('crm_tasks').update({ status }).eq('id', id);
+
+  if (error) {
+    console.error('updateCrmTaskStatus:', error);
+    return { ok: false, error: error.message };
+  }
+  return { ok: true, error: null };
+}
+
+export async function updateCrmTask(
+  id: string,
+  payload: Partial<{
+    title: string;
+    task_type: CrmTaskType;
+    assigned_to: string;
+    buyer_id: string | null;
+    due_at: string;
+    reminder_channel: CrmReminderChannel;
+    whatsapp_phone_e164: string | null;
+    notes: string | null;
+    status: CrmTaskStatus;
+  }>,
+): Promise<{ task: CrmTask | null; error: string | null }> {
+  const patch: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(payload)) {
+    if (v !== undefined) patch[k] = v;
+  }
+  if (payload.reminder_channel !== undefined && payload.reminder_channel !== 'whatsapp') {
+    patch.whatsapp_phone_e164 = null;
+  }
+
+  const { data, error } = await supabase
+    .from('crm_tasks')
+    .update(patch)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('updateCrmTask:', error);
+    return { task: null, error: error.message };
+  }
+  return { task: data as CrmTask, error: null };
 }
